@@ -121,7 +121,7 @@ module Embulk
               opts = {}
 
               Embulk.logger.debug { "embulk-output-bigquery: insert_job(#{@project}, #{body}, #{opts})" }
-              response = with_network_retry { client.insert_job(@project, body, **opts) }
+              response = with_network_retry { client.insert_job(@project, body, opts) }
               unless @task['is_skip_job_result_check']
                 response = wait_load('Load', response)
               end
@@ -222,7 +222,7 @@ module Embulk
                 # },
               }
               Embulk.logger.debug { "embulk-output-bigquery: insert_job(#{@project}, #{body}, #{opts})" }
-              response = with_network_retry { client.insert_job(@project, body, **opts) }
+              response = with_network_retry { client.insert_job(@project, body, opts) }
               if @task['is_skip_job_result_check']
                 response
               else
@@ -278,7 +278,7 @@ module Embulk
 
               opts = {}
               Embulk.logger.debug { "embulk-output-bigquery: insert_job(#{@project}, #{body}, #{opts})" }
-              response = with_network_retry { client.insert_job(@project, body, **opts) }
+              response = with_network_retry { client.insert_job(@project, body, opts) }
               wait_load('Copy', response)
             rescue Google::Apis::ServerError, Google::Apis::ClientError, Google::Apis::AuthorizationError => e
               response = {status_code: e.status_code, message: e.message, error_class: e.class}
@@ -373,7 +373,7 @@ module Embulk
             end
             opts = {}
             Embulk.logger.debug { "embulk-output-bigquery: insert_dataset(#{@project}, #{dataset}, #{@location_for_log}, #{body}, #{opts})" }
-            with_network_retry { client.insert_dataset(@project, body, **opts) }
+            with_network_retry { client.insert_dataset(@project, body, opts) }
           rescue Google::Apis::ServerError, Google::Apis::ClientError, Google::Apis::AuthorizationError => e
             if e.status_code == 409 && /Already Exists:/ =~ e.message
               # ignore 'Already Exists' error
@@ -411,6 +411,7 @@ module Embulk
             dataset ||= @dataset
             options ||= {}
             options['time_partitioning'] ||= @task['time_partitioning']
+            options['range_partitioning'] ||= @task['range_partitioning']
             if Helper.has_partition_decorator?(table)
               options['time_partitioning'] ||= {'type' => 'DAY'}
               table = Helper.chomp_partition_decorator(table)
@@ -421,7 +422,6 @@ module Embulk
               table_reference: {
                 table_id: table,
               },
-              description: @task['description'],
               schema: {
                 fields: fields,
               }
@@ -432,6 +432,17 @@ module Embulk
                 type: options['time_partitioning']['type'],
                 expiration_ms: options['time_partitioning']['expiration_ms'],
                 field: options['time_partitioning']['field'],
+              }
+            end
+
+            if options['range_partitioning']
+              body[:range_partitioning] = {
+                field: options['range_partitioning']['field'],
+              }
+              body[:range_partitioning][:range] = {
+                start: options['range_partitioning']['range']['start'],
+                end: options['range_partitioning']['range']['end'],
+                interval: options['range_partitioning']['range']['interval'],
               }
             end
 
@@ -448,8 +459,8 @@ module Embulk
             end
 
             opts = {}
-            Embulk.logger.debug { "embulk-output-bigquery: insert_table(#{@destination_project}, #{dataset}, #{@location_for_log}, #{body}, #{opts})" }
-            with_network_retry { client.insert_table(@destination_project, dataset, body, **opts) }
+            Embulk.logger.debug { "embulk-output-bigquery: insert_table(#{@project}, #{dataset}, #{@location_for_log}, #{body}, #{opts})" }
+            with_network_retry { client.insert_table(@project, dataset, body, opts) }
           rescue Google::Apis::ServerError, Google::Apis::ClientError, Google::Apis::AuthorizationError => e
             if e.status_code == 409 && /Already Exists:/ =~ e.message
               # ignore 'Already Exists' error
@@ -458,7 +469,7 @@ module Embulk
 
             response = {status_code: e.status_code, message: e.message, error_class: e.class}
             Embulk.logger.error {
-              "embulk-output-bigquery: insert_table(#{@destination_project}, #{dataset}, #{@location_for_log}, #{body}, #{opts}), response:#{response}"
+              "embulk-output-bigquery: insert_table(#{@project}, #{dataset}, #{@location_for_log}, #{body}, #{opts}), response:#{response}"
             }
             raise Error, "failed to create table #{@destination_project}:#{dataset}.#{table} in #{@location_for_log}, response:#{response}"
           end
