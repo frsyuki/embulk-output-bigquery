@@ -270,6 +270,27 @@ module Embulk
         assert_equal 'DAY', task['time_partitioning']['type']
       end
 
+      def test_range_partitioning
+        config = least_config.merge('range_partitioning' => {'field' => 'foo', 'start' => '1', 'end' => '2', 'interval' => '1'})
+        assert_nothing_raised { Bigquery.configure(config, schema, processor_count) }
+
+        # field is required
+        config = least_config.merge('range_partitioning' => {'start' => '1', 'end' => '2', 'interval' => '1'})
+        assert_raise { Bigquery.configure(config, schema, processor_count) }
+
+        # start is required
+        config = least_config.merge('range_partitioning' => {'field' => 'foo', 'end' => '2', 'interval' => '1'})
+        assert_raise { Bigquery.configure(config, schema, processor_count) }
+
+        # end is required
+        config = least_config.merge('range_partitioning' => {'field' => 'foo', 'start' => '1', 'interval' => '1'})
+        assert_raise { Bigquery.configure(config, schema, processor_count) }
+
+        # interval is required
+        config = least_config.merge('range_partitioning' => {'field' => 'foo', 'start' => '1', 'end' => '2'})
+        assert_raise { Bigquery.configure(config, schema, processor_count) }
+      end
+
       def test_clustering
         config = least_config.merge('clustering' => {'fields' => ['field_a']})
         assert_nothing_raised { Bigquery.configure(config, schema, processor_count) }

@@ -89,6 +89,7 @@ module Embulk
           'ignore_unknown_values'          => config.param('ignore_unknown_values',          :bool,    :default => false),
           'allow_quoted_newlines'          => config.param('allow_quoted_newlines',          :bool,    :default => false),
           'time_partitioning'              => config.param('time_partitioning',              :hash,    :default => nil),
+          'range_partitioning'             => config.param('range_partitioning',             :hash,    :default => nil),
           'clustering'                     => config.param('clustering',                     :hash,    :default => nil), # google-api-ruby-client >= v0.21.0
           'schema_update_options'          => config.param('schema_update_options',          :array,   :default => nil),
 
@@ -231,8 +232,24 @@ module Embulk
           unless task['time_partitioning']['type']
             raise ConfigError.new "`time_partitioning` must have `type` key"
           end
-        elsif Helper.has_partition_decorator?(task['table'])
+        # If user specify range_partitioning, it should be used as is
+        elsif Helper.has_partition_decorator?(task['table']) && task['range_partitioning'].nil?
           task['time_partitioning'] = {'type' => 'DAY'}
+        end
+
+        if task['range_partitioning']
+          unless task['range_partitioning']['field']
+            raise ConfigError.new "`range_partitioning` must have `field` key"
+          end
+          unless task['range_partitioning']['start']
+            raise ConfigError.new "`range_partitioning` must have `start` key"
+          end
+          unless task['range_partitioning']['end']
+            raise ConfigError.new "`range_partitioning` must have `end` key"
+          end
+          unless task['range_partitioning']['interval']
+            raise ConfigError.new "`range_partitioning` must have `interval` key"
+          end
         end
 
         if task['clustering']
