@@ -30,7 +30,6 @@ out:
   schema_file: example/schema.json
   range_partitioning:
     field: 'long'
-    range:
-      start: '90'
-      end: '100'
-      interval: '1'
+    start: '90'
+    end: '100'
+    interval: '1'

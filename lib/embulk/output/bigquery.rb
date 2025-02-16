@@ -241,18 +241,14 @@ module Embulk
           unless task['range_partitioning']['field']
             raise ConfigError.new "`range_partitioning` must have `field` key"
           end
-          unless task['range_partitioning']['range']
-            raise ConfigError.new "`range_partitioning` must have `range` key"
+          unless task['range_partitioning']['start']
+            raise ConfigError.new "`range_partitioning` must have `start` key"
           end
-
-          unless task['range_partitioning']['range']['start']
-            raise ConfigError.new "`range_partitioning` must have `range.start` key"
+          unless task['range_partitioning']['end']
+            raise ConfigError.new "`range_partitioning` must have `end` key"
           end
-          unless task['range_partitioning']['range']['end']
-            raise ConfigError.new "`range_partitioning` must have `range.end` key"
-          end
-          unless task['range_partitioning']['range']['interval']
-            raise ConfigError.new "`range_partitioning` must have `range.interval` key"
+          unless task['range_partitioning']['interval']
+            raise ConfigError.new "`range_partitioning` must have `interval` key"
           end
         end
 
